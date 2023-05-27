@@ -22,6 +22,24 @@ transform = transforms.Compose(
 cifar10set = torchvision.datasets.CIFAR10(root='~/data/CIFAR10', train=True, download=False, transform=transform)
 cifar10loader = torch.utils.data.DataLoader(cifar10set, batch_size=batch_size, shuffle=False, num_workers=0)
 
+channel = 3
+im_size = (32, 32)
+num_classes = 2
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+transform=transforms.Compose([
+                        transforms.Resize(im_size),
+                        transforms.CenterCrop(im_size),
+                        transforms.ToTensor(),
+                        transforms.Normalize(mean=mean, std=std)])
+celebtrainset = torchvision.datasets.ImageFolder(root='/home/guest-yhj/data/celebA-condensed/gender', transform = transform)
+
+selected_indices = [12, 17, 55, 46, 30, 15, 54, 45, 15, 22, 55, 53, 27, 5, 43, 36, 27, 14, 41, 42]
+subset_dataset = torch.utils.data.Subset(celebtrainset, selected_indices)
+
+celebAloader = torch.utils.data.DataLoader(subset_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+
+
 def l2_norm(x, y):
     v = x - y
     return torch.norm(v, p=2).item()
@@ -75,14 +93,15 @@ def image_distance_dataset(myloader):
         candi_data = []
         candi_norm = []
 
-        for i_origin, data_origin in enumerate(cifar10loader, 0):
+        for i_origin, data_origin in enumerate(celebAloader, 0):
             input_origin, label_origin = data_origin
             label_origin = label_origin.item()
-            if label_origin != 1:
+            if label_origin == 1:
                 continue
             
             candi_data.append(data_origin)
-            candi_norm.append(lpips_loss(input_origin, input))
+            # candi_norm.append(lpips_loss(input_origin, input))
+            candi_norm.append(l2_norm(input_origin, input))
         
         min_idx = torch.argmin(torch.tensor(candi_norm))
         min_input, min_label = candi_data[min_idx.item()]
